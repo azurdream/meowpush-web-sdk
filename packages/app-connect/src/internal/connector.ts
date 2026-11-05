@@ -143,8 +143,33 @@ function openPlaceholder(rt: Runtime, options: ConnectOptions): Placeholder | un
     meta.name = 'referrer'; meta.content = 'no-referrer';
     w.document.head.append(meta);
     w.document.title = 'MeowPush';
+    const viewport = w.document.createElement('meta');
+    viewport.name = 'viewport';
+    viewport.content = 'width=device-width, initial-scale=1';
+    w.document.head.append(viewport);
+    const locale = resolveLocale(options.locale, rt.window.navigator);
+    w.document.documentElement.lang = locale;
+    // CSS system colors follow the user's scheme, including later theme changes.
+    // Individual CSSOM properties also work when the opener disallows inline stylesheets.
+    Object.assign(w.document.documentElement.style, {
+      colorScheme: 'light dark',
+      backgroundColor: 'Canvas',
+      color: 'CanvasText',
+    });
+    Object.assign(w.document.body.style, {
+      margin: '0',
+      minHeight: '100vh',
+      boxSizing: 'border-box',
+      display: 'grid',
+      placeItems: 'center',
+      padding: '24px',
+      font: '16px/1.5 system-ui, sans-serif',
+      textAlign: 'center',
+    });
     const message = w.document.createElement('p');
-    message.textContent = messages(resolveLocale(options.locale, rt.window.navigator)).creating;
+    message.textContent = messages(locale).creating;
+    message.style.margin = '0';
+    message.setAttribute('role', 'status');
     w.document.body.append(message);
     return p;
   } catch { closePlaceholder(p); return undefined; }
