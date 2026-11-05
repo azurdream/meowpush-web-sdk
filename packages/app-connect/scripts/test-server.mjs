@@ -4,6 +4,8 @@ import { dirname, extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
+// Playwright's WebKit screenshotter inserts this exact empty rule to sync animations.
+const screenshotStyle = "'sha256-YjaKGiklmzC6wjXA513HAMmzus8VE61XCOT+SmwNZWA='";
 const types = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -26,7 +28,7 @@ const server = createServer(async (request, response) => {
         'Content-Type': 'text/html; charset=utf-8',
         'Cache-Control': 'no-store',
         'Content-Security-Policy':
-          "default-src 'none'; connect-src http://127.0.0.1:*; frame-ancestors 'none'",
+          `default-src 'none'; style-src ${screenshotStyle}; connect-src http://127.0.0.1:*; frame-ancestors 'none'`,
       });
       response.end(
         '<!doctype html><html lang="en"><title>Direct CORS fixture</title><h1>Direct CORS fixture</h1></html>',
@@ -54,7 +56,7 @@ const server = createServer(async (request, response) => {
       'Cache-Control': 'no-store',
       'Referrer-Policy': 'no-referrer',
       'Content-Security-Policy':
-        "default-src 'self'; script-src 'self'; style-src 'self'; connect-src https://accounts.meowpush.com; img-src 'self' data: https://meowpush.com; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+        `default-src 'self'; script-src 'self'; style-src 'self' ${screenshotStyle}; connect-src https://accounts.meowpush.com; img-src 'self' data: https://meowpush.com; object-src 'none'; base-uri 'none'; frame-ancestors 'none'`,
     });
     response.end(content);
   } catch {
