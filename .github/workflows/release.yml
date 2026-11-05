@@ -1,0 +1,178 @@
+name: Release packages
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  select-mode:
+    if: github.repository == 'azurdream/meowpush-web-sdk' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      mode: ${{ steps.select.outputs.mode }}
+      publish-plan-artifact-id: ${{ steps.select.outputs.publish-plan-artifact-id }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - uses: pnpm/action-setup@v6
+      - run: pnpm install --frozen-lockfile
+      - uses: changesets/action/select-mode@v2
+        id: select
+
+  version:
+    if: needs.select-mode.outputs.mode == 'version'
+    needs: select-mode
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - uses: pnpm/action-setup@v6
+      - run: pnpm install --frozen-lockfile
+      - uses: changesets/action/version@v2
+        with:
+          script: pnpm version:packages
+          commit-message: 'chore(release): version packages'
+          pr-title: 'chore(release): version packages'
+
+  pack:
+    if: needs.select-mode.outputs.mode == 'publish'
+    needs: select-mode
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    outputs:
+      pack-dir-artifact-id: ${{ steps.pack.outputs.pack-dir-artifact-id }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - uses: pnpm/action-setup@v6
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm verify
+      - run: pnpm verify:package
+      - run: pnpm --filter @azurdream/meowpush-app-connect exec playwright install --with-deps chromium firefox webkit
+      - run: pnpm test:e2e
+      - uses: changesets/action/pack@v2
+        id: pack
+        with:
+          publish-plan-artifact-id: ${{ needs.select-mode.outputs.publish-plan-artifact-id }}
+
+  publish:
+    needs: pack
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      published: ${{ steps.npm.outputs.published }}
+      published-packages: ${{ steps.npm.outputs.published-packages }}
+    environment: npm
+    env:
+      PNPM_CONFIG_IGNORE_SCRIPTS: 'true'
+      NPM_CONFIG_IGNORE_SCRIPTS: 'true'
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - uses: pnpm/action-setup@v6
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - uses: changesets/action/publish@v2
+        id: npm
+        with:
+          pack-dir-artifact-id: ${{ needs.pack.outputs.pack-dir-artifact-id }}
+
+  publish-app-connect-cos:
+    needs: [pack, publish]
+    if: contains(fromJSON(needs.publish.outputs.published-packages || '[]').*.name, '@azurdream/meowpush-app-connect')
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/publish-app-connect-cos.yml
+    with:
+      pack-artifact-id: ${{ needs.pack.outputs.pack-dir-artifact-id }}
+    secrets:
+      COS_SECRET_ID: ${{ secrets.COS_SECRET_ID }}
+      COS_SECRET_KEY: ${{ secrets.COS_SECRET_KEY }}
+      COS_BUCKET: ${{ secrets.COS_BUCKET }}
+      COS_REGION: ${{ secrets.COS_REGION }}
+
+  notify-release-success:
+    needs: [publish, publish-app-connect-cos]
+    if: >-
+      ${{ always() && !cancelled() &&
+          github.repository == 'azurdream/meowpush-web-sdk' &&
+          github.ref == 'refs/heads/master' &&
+          needs.publish.result == 'success' &&
+          needs.publish.outputs.published == 'true' &&
+          (needs.publish-app-connect-cos.result == 'success' ||
+           (needs.publish-app-connect-cos.result == 'skipped' &&
+            !contains(fromJSON(needs.publish.outputs.published-packages || '[]').*.name, '@azurdream/meowpush-app-connect'))) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Prepare release notification
+        id: message
+        continue-on-error: true
+        env:
+          PUBLISHED_PACKAGES: ${{ needs.publish.outputs.published-packages }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { appendFileSync } from 'node:fs';
+          import { randomUUID } from 'node:crypto';
+          const packages = JSON.parse(process.env.PUBLISHED_PACKAGES);
+          const lines = packages.slice(0, 10).map(({ name, version }) => `- ${name}@${version}`);
+          if (packages.length > 10) lines.push(`… and ${packages.length - 10} more packages`);
+          const body = 'Release completed.\n' + lines.join('\n');
+          const delimiter = randomUUID();
+          appendFileSync(process.env.GITHUB_OUTPUT, `body<<${delimiter}\n${body}\n${delimiter}\n`);
+          NODE
+
+      - name: Notify release success
+        if: steps.message.outcome == 'success'
+        continue-on-error: true
+        uses: azurdream/meowpush-gh-actions@v1
+        with:
+          key: ${{ secrets.MP_MEOWPUSH_KEY }}
+          title: '${{ github.repository }} Release Success'
+          body: ${{ steps.message.outputs.body }}
+          url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          group: github-actions

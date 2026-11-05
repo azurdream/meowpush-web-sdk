@@ -1,0 +1,29 @@
+name: SDK checks
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - uses: pnpm/action-setup@v6
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm verify
+      - run: pnpm verify:package
+      - name: Check the COS upload plan without credentials
+        run: |
+          version=$(node -p "require('./packages/app-connect/package.json').version")
+          node scripts/publish-app-connect-cos.mjs --dir packages/app-connect/dist --version "$version" --dry-run
+      - run: pnpm --filter @azurdream/meowpush-app-connect exec playwright install --with-deps chromium firefox webkit
+      - run: pnpm test:e2e

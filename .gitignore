@@ -1,0 +1,16 @@
+node_modules/
+.pnpm-store/
+pnpm-debug.log*
+packages/*/dist/
+playwright-report/
+test-results/
+*.tgz
+.DS_Store
+
+.planning/
+task_plan.md
+findings.md
+progress.md
+docs/implementation/
+**/DESIGN.md
+package-lock.json

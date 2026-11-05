@@ -1,0 +1,90 @@
+.mp-connect,
+.mp-connect[data-theme="light"] {
+  --mp-connect-background: #ffffff;
+  --mp-connect-foreground: #20242b;
+  --mp-connect-border: #c8cdd5;
+  --mp-connect-muted: #565e6c;
+  --mp-connect-accent: #425bd8;
+  --mp-connect-brand: #fdb326;
+  --mp-connect-brand-pressed: #f7a900;
+  --mp-connect-error: #bc2638;
+  --mp-connect-success: #16834a;
+  color: var(--mp-connect-foreground);
+  font: 14px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+.mp-connect[data-theme="dark"] {
+  --mp-connect-background: #24272d;
+  --mp-connect-foreground: #f4f5f7;
+  --mp-connect-border: #626a78;
+  --mp-connect-muted: #b8bfcc;
+  --mp-connect-accent: #a2b1ff;
+  --mp-connect-error: #ff8b97;
+  --mp-connect-success: #66d99a;
+}
+@media (prefers-color-scheme: dark) {
+  .mp-connect[data-theme="auto"] {
+    --mp-connect-background: #24272d;
+    --mp-connect-foreground: #f4f5f7;
+    --mp-connect-border: #626a78;
+    --mp-connect-muted: #b8bfcc;
+    --mp-connect-accent: #a2b1ff;
+    --mp-connect-error: #ff8b97;
+    --mp-connect-success: #66d99a;
+  }
+}
+.mp-connect .mp-connect__row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.mp-connect .mp-connect__button {
+  --mp-connect-min-height: 40px;
+  position: relative; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center;
+  height: var(--mp-connect-min-height); padding: 8px 14px; margin: 0; border: 1px solid var(--mp-connect-border);
+  border-radius: 9px; background: var(--mp-connect-background); color: var(--mp-connect-foreground);
+  font: inherit; font-weight: 600; cursor: pointer; text-align: center;
+  transition: width var(--mp-connect-duration, 280ms) var(--mp-connect-easing, cubic-bezier(.22, 1, .36, 1)), height var(--mp-connect-duration, 280ms) var(--mp-connect-easing, cubic-bezier(.22, 1, .36, 1)), border-color 160ms ease;
+}
+.mp-connect[data-size="sm"] .mp-connect__button { --mp-connect-min-height: 34px; padding: 5px 10px; font-size: 13px; }
+.mp-connect .mp-connect__button:hover:not(:disabled),
+.mp-connect .mp-connect__button:focus-visible:not(:disabled) { border-color: var(--mp-connect-brand); }
+.mp-connect .mp-connect__button:active:not(:disabled) { border-color: var(--mp-connect-brand-pressed); }
+.mp-connect .mp-connect__button:disabled { cursor: default; opacity: .75; }
+.mp-connect .mp-connect__icon { flex: 0 0 21px; display: block; width: 21px; height: 21px; object-fit: contain; }
+.mp-connect .mp-connect__icon[data-failed="true"] { visibility: hidden; }
+.mp-connect .mp-connect__content { position: relative; display: block; }
+.mp-connect .mp-connect__face { display: flex; width: max-content; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; animation: mp-connect-enter var(--mp-connect-duration, 280ms) var(--mp-connect-easing, cubic-bezier(.22, 1, .36, 1)) both; }
+.mp-connect .mp-connect__face--outgoing { position: absolute; top: 50%; left: 50%; pointer-events: none; animation: mp-connect-leave var(--mp-connect-duration, 280ms) var(--mp-connect-easing, cubic-bezier(.22, 1, .36, 1)) both; }
+.mp-connect .mp-connect__button[data-tone="error"] .mp-connect__label { color: var(--mp-connect-error); }
+.mp-connect .mp-connect__loader, .mp-connect .mp-connect__result-icon { position: relative; display: block; flex: 0 0 21px; width: 21px; height: 21px; }
+.mp-connect .mp-connect__loader { perspective: 36px; transform-style: preserve-3d; }
+.mp-connect .mp-connect__dot { position: absolute; top: 8px; left: 8px; width: 5px; height: 5px; border-radius: 50%; background: currentColor; animation: mp-connect-orbit 1.35s linear infinite; }
+.mp-connect .mp-connect__dot:nth-child(2) { animation-delay: -.45s; }
+.mp-connect .mp-connect__dot:nth-child(3) { animation-delay: -.9s; }
+.mp-connect .mp-connect__result-icon { border-radius: 50%; background: var(--mp-connect-error); color: var(--mp-connect-background); }
+.mp-connect .mp-connect__result-icon--success { background: var(--mp-connect-success); }
+.mp-connect .mp-connect__result-icon::before, .mp-connect .mp-connect__result-icon::after { content: ""; position: absolute; }
+.mp-connect .mp-connect__result-icon--success::before { width: 8px; height: 4px; top: 6px; left: 6px; border-left: 2px solid; border-bottom: 2px solid; transform: rotate(-45deg); }
+.mp-connect .mp-connect__result-icon--error::before, .mp-connect .mp-connect__result-icon--error::after { top: 10px; left: 5px; width: 11px; height: 2px; border-radius: 1px; background: currentColor; transform: rotate(45deg); }
+.mp-connect .mp-connect__result-icon--error::after { transform: rotate(-45deg); }
+@keyframes mp-connect-enter { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes mp-connect-leave { from { opacity: 1; transform: translate(-50%, -50%); } to { opacity: 0; transform: translate(-50%, calc(-50% - 2px)); } }
+/* The dots share one x/z orbit and exchange front/back positions. Perspective
+   overlap is intentional; counter-rotation keeps each dot facing the viewer. */
+@keyframes mp-connect-orbit {
+  from { transform: rotateY(0deg) translateZ(7px) rotateY(0deg); opacity: 1; }
+  25% { opacity: .75; }
+  50% { opacity: .45; }
+  75% { opacity: .75; }
+  to { transform: rotateY(360deg) translateZ(7px) rotateY(-360deg); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mp-connect .mp-connect__button { transition: none; }
+  .mp-connect .mp-connect__face, .mp-connect .mp-connect__dot { animation: none; }
+  .mp-connect .mp-connect__face--outgoing { display: none; }
+  .mp-connect .mp-connect__dot { left: 0; opacity: 1; transform: none; }
+  .mp-connect .mp-connect__dot:nth-child(2) { left: 8px; opacity: .75; }
+  .mp-connect .mp-connect__dot:nth-child(3) { left: 16px; opacity: .5; }
+}
+.mp-connect .mp-connect__link { color: var(--mp-connect-accent); text-decoration: underline; text-underline-offset: 3px; }
+.mp-connect .mp-connect__button:focus-visible,
+.mp-connect .mp-connect__link:focus-visible { outline: 2px solid var(--mp-connect-accent); outline-offset: 3px; }
+.mp-connect .mp-connect__button:focus-visible { outline-color: var(--mp-connect-brand); }
+.mp-connect .mp-connect__status { color: var(--mp-connect-muted); font: inherit; font-size: 12px; margin: 7px 0 0; max-width: 48ch; overflow-wrap: anywhere; }
+.mp-connect [hidden] { display: none !important; }

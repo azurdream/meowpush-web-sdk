@@ -1,0 +1,83 @@
+name: Publish App Connect to COS
+
+on:
+  workflow_call:
+    inputs:
+      pack-artifact-id:
+        description: Verified Changesets pack artifact from this release run
+        required: true
+        type: string
+    secrets:
+      COS_SECRET_ID: { required: true }
+      COS_SECRET_KEY: { required: true }
+      COS_BUCKET: { required: true }
+      COS_REGION: { required: true }
+  push:
+    tags: ['@azurdream/meowpush-app-connect@*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing package release tag, e.g. @azurdream/meowpush-app-connect@1.2.3'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  publish:
+    if: github.repository == 'azurdream/meowpush-web-sdk' && !github.event.deleted && (inputs.pack-artifact-id || github.ref_type == 'tag' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    concurrency:
+      group: meowpush-app-connect-cos
+      queue: max
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - uses: pnpm/action-setup@v6
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Download the tarball published by Changesets
+        if: inputs.pack-artifact-id
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          artifact-ids: ${{ inputs.pack-artifact-id }}
+          merge-multiple: true
+          path: ${{ runner.temp }}/changesets-pack
+
+      - name: Verify release tag and extract browser assets
+        id: assets
+        env:
+          RELEASE_TAG: ${{ inputs.tag || (github.ref_type == 'tag' && github.ref_name) || '' }}
+          EXPECTED_COMMIT: ${{ (inputs.pack-artifact-id || github.ref_type == 'tag') && github.sha || '' }}
+          PACK_DIRECTORY: ${{ inputs.pack-artifact-id && format('{0}/changesets-pack', runner.temp) || '' }}
+          CDN_DIRECTORY: ${{ runner.temp }}/app-connect-cdn
+        run: node scripts/prepare-app-connect-cdn.mjs
+
+      - name: Upload versioned assets and advance the stable alias
+        id: cos
+        env:
+          VERSION: ${{ steps.assets.outputs.version }}
+          COS_SECRET_ID: ${{ secrets.COS_SECRET_ID }}
+          COS_SECRET_KEY: ${{ secrets.COS_SECRET_KEY }}
+          COS_BUCKET: ${{ secrets.COS_BUCKET }}
+          COS_REGION: ${{ secrets.COS_REGION }}
+          COS_DOMAIN: ${{ vars.COS_DOMAIN }}
+        run: node scripts/publish-app-connect-cos.mjs --dir "$RUNNER_TEMP/app-connect-cdn" --version "$VERSION"
+
+      - name: Verify public bytes, response headers and conditional requests
+        env:
+          VERSION: ${{ steps.assets.outputs.version }}
+          VERIFY_LATEST: ${{ steps.cos.outputs.latest_published }}
+        run: |
+          options=()
+          if [[ "$VERIFY_LATEST" == true ]]; then options+=(--latest); fi
+          node scripts/verify-app-connect-cdn.mjs --dir "$RUNNER_TEMP/app-connect-cdn" --version "$VERSION" "${options[@]}"

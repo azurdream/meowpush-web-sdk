@@ -1,0 +1,69 @@
+{
+  "name": "@azurdream/meowpush-app-connect",
+  "version": "0.0.0",
+  "description": "Connect a web application's push-key form to MeowPush with explicit user authorization.",
+  "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./ui": {
+      "types": "./dist/ui.d.ts",
+      "import": "./dist/ui.js"
+    },
+    "./styles.css": "./dist/styles.css",
+    "./connect.min.js": "./dist/connect.min.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "prepack": "pnpm typecheck && pnpm build",
+    "verify:package": "node scripts/verify-package.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.1",
+    "@types/node": "24.10.0",
+    "esbuild": "0.28.2",
+    "jsdom": "27.4.0",
+    "typescript": "5.9.3",
+    "vitest": "4.1.12"
+  },
+  "license": "MIT",
+  "unpkg": "./dist/connect.min.js",
+  "jsdelivr": "./dist/connect.min.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/azurdream/meowpush-web-sdk.git",
+    "directory": "packages/app-connect"
+  },
+  "homepage": "https://github.com/azurdream/meowpush-web-sdk/tree/master/packages/app-connect#readme",
+  "bugs": {
+    "url": "https://github.com/azurdream/meowpush-web-sdk/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "keywords": [
+    "meowpush",
+    "push",
+    "notifications",
+    "browser",
+    "authorization"
+  ]
+}

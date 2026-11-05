@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MeowPush App Connect example</title>
+  <link rel="stylesheet" href="../dist/styles.css">
+  <link rel="stylesheet" href="example.css">
+</head>
+<body>
+  <main>
+    <p class="eyebrow">EXAMPLE SERVICE</p>
+    <h1>Notifications</h1>
+    <p>Connect MeowPush to get notified when a task finishes.</p>
+    <form id="notification-form">
+      <label for="push-key">Application push key</label>
+      <input id="push-key" name="push_key" type="password" placeholder="mpap…" autocomplete="off">
+      <div id="connect"></div>
+      <button type="submit" class="save">Save settings</button>
+      <p id="saved" role="status"></p>
+    </form>
+    <p class="note">This demo stores settings in memory only and sends no test notifications.</p>
+  </main>
+  <script src="../dist/connect.min.js"></script>
+  <script src="example.js"></script>
+</body>
+</html>
