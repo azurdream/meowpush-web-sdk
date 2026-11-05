@@ -1,6 +1,6 @@
 {
   "name": "@azurdream/meowpush-app-connect",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Connect a web application's push-key form to MeowPush with explicit user authorization.",
   "type": "module",
   "sideEffects": [
